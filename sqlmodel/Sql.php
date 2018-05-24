@@ -121,20 +121,26 @@ class Sql
      * @return string 操作
      */
     protected  function getOperator(&$where) {
-
-
         switch ($where[1]) {
             case '=':
             case '<':
             case '>=':
             case '<=':
             case '>':
+            case '<>':
                 $where[0] = '`'.$where[0].'`';
+            if ($field !== false) {$where[0] = '`'.$db.'`'.'.'.$where[0];}
                 $where[2] = $this->prepare($where[2]);
+
                 return '';
+            case 'is':
+                $where[0] = '`'.$where[0].'`';
+                if ($field !== false) {$where[0] = '`'.$db.'`'.'.'.$where[0];}
+                break;
             default :
                 if (is_array($where[2])) $where[2] = '('.join($where[2],',').')';
                 else $where[2] = '('.$where[2].')';
+                if ($field !== false) {$where[0] = '`'.$db.'`'.'.'.$where[0];}
 
         }
     }
@@ -568,24 +574,26 @@ class Mysql
 
     }
 }
+$user_id = 1;
+$start = 1;
+$end = 1;
+$leaveDate = 1;
+$today = 1;
+$if_leave = 1;
+ $join = [
+            'hr_assign_shift b',
+            'hr_working_shift c' => 'b.shift_id=c.shift_id',
+            'user a' => 'a.id = b.user_id'
+        ];
+$select = 'b.date,b.user_id,b.day_type_id,b.shift_id,c.onduty_time,c.offduty_time,a.id,a.username,a.cname,a.code,a.if_leave,a.entry_date,a.leave_date';
+$where = [['user_id','=',$user_id],['date','>=',$start],['date','<=',$end]];
+$userwhere = [
+    ['id','>',6],
+    'or'=>[['if_leave','=',1],['if_leave'=>2,'leave_date','>=',$leaveDate]],
+    ['entry_date','<',$today],
+    ['if_leave','<>',0],
+    ['entry_date','is','not null']
+];
+$sql = Sql::join($join)->setPrepare(false)->select($select)->where($where)->get();
 
-$pdo = new PDO('mysql:dbname=blog;host=127.0.0.1','root','12');
-
-$obj = Sql::table('blog_comments')->setPrepare(true);
-$sql = $obj->select()->where(['comment_ID','=',1])->get();
-$data = $obj->getPrepareData();
-$obj3 = $pdo->prepare($sql);
-$obj3->execute($data);
-$da = $obj3->fetch(PDO::FETCH_ASSOC);
-unset($da['comment_ID']);
-$da['comment_content'] = 'ww';
-$obj2 = Sql::table('blog_comments')->setPrepare(true);
-$sql = $obj2->where($da)->get();
-$data = $obj2->getPrePareData();
-$obj4 = $pdo->prepare($sql);
-
-var_dump($obj4->execute($data));
-var_dump($obj4->fetchAll());
-var_dump($pdo->query($sql)->fetchAll());
-
-
+var_dump($sql);
