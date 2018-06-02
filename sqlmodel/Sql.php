@@ -13,8 +13,12 @@ class Sql
     protected $sql = null;
     protected $limit = '';
     protected $begintransaction = false;
-
+    protected $prepare = true;
+    protected $prepareData = [];
+    protected $prepareDataCount = 0;
+    protected $preparesignal = null;
     protected function __construct() {}
+    private $childQuery = false;
 
     /**
      *连接
@@ -95,7 +99,7 @@ class Sql
                    return $this->arrayTransform($where);
                 }
                 if (count($where) == 2) {
-                    return $where[0].' = '.$where[1];
+                    return $where[0].' = '.$this->prepare($where[1]);
                 }
                 $this->getOperator($where);
                 return join($where,' ');
@@ -125,6 +129,8 @@ class Sql
             case '>=':
             case '<=':
             case '>':
+                $where[0] = '`'.$where[0].'`';
+                $where[2] = $this->prepare($where[2]);
                 return '';
             default :
                 if (is_array($where[2])) $where[2] = '('.join($where[2],',').')';
@@ -145,7 +151,7 @@ class Sql
     {
         if (!$this->select) $this->select = ' select ';
         if (is_string($select) ) $this->select .= $select;
-        if (is_array($select))$this->select .= join($select,',');
+        if (is_array($select))$this->select .= '`'.join($select,'`,`').'`';
     }
 
     /**
@@ -211,7 +217,7 @@ class Sql
     {
         $sql = '';
        foreach ($data as $k=>$v) {
-           $sql .= ' '.$k.'='.$v.' and';
+           $sql .= ' '.$k.'='.$this->prepare($v).' and';
        }
        $sql = rtrim($sql,'and');
        if (!$this->temTable) $this->temTable = $this->prefix.$this->table;
@@ -233,9 +239,11 @@ class Sql
     {
         if (isset($obj[0]) && !is_array($obj[0])) $obj = [$obj];
         $class = __CLASS__;
+        $this->childQuery = true;
          foreach ($obj as $k => $v) {
              if (!$k) $k = 'where';
              $parm = ($k == 'from') ? $v :$v[2];
+             if ($parm->prepare) $this->prepareData += $parm->getPrepareData();
              $parm = $parm instanceof $class ? $parm->get(): $parm;
              $parm = '('.rtrim($parm,';').')';
              switch ($k) {
@@ -251,7 +259,7 @@ class Sql
                      $this->where($v,$and);
              }
          }
-
+        $this->childQuery = false;
     }
 
     /**
@@ -279,12 +287,12 @@ class Sql
             if($field == [] && is_array($v)) {
                 ksort($v);
             }
-            $sql .= ' ('.join($v,',').'),';
+            $sql .= ' ('.$this->prepare($v).'),';
         }
         if (!$field) $field = array_keys($v);
         $sql = rtrim($sql,',');
 
-        return $this->sql = ('insert into '.$this->prefix.$this->table.'('.join($field,',').') values'.$sql).';';
+        return $this->sql = ('insert into '.$this->prefix.$this->table.'(`'.join($field,'`,`').'`) values'.$sql.';');
     }
 
     /**
@@ -298,7 +306,8 @@ class Sql
      */
     protected  function insertOne($data)
     {
-        return $this->sql = 'insert into'.$this->temTable.'('.join(array_keys($data),',').') values ('.join($data,',').');';
+
+        return $this->sql = 'insert into '.$this->temTable.'(`'.join(array_keys($data),'`,`').'`) values ('.$this->prepare($data).');';
     }
 
     /**
@@ -315,6 +324,7 @@ class Sql
     {
         $class = get_called_class();
         $obj = new $class();
+        $obj->preparesignal = ':'.uniqid().'_';
         $obj->connect();
         if (method_exists(get_called_class(),$func)) {
             call_user_func_array([$obj,$func],$arg);
@@ -486,6 +496,32 @@ class Sql
     {
 
     }
+
+    protected function prepare($data)
+    {
+        if ($this->childQuery) return $data;
+        if (!is_array($data)) $data = [$data];
+        if (!$this->prepare) return ' "'.join('" , "',$data).'" ';
+
+        $res = [];
+        foreach ($data as $v) {
+            $this->prepareDataCount++;
+            $this->prepareData[$this->preparesignal.$this->prepareDataCount] = is_string($v)? $v:$v;
+            $res[] = $this->preparesignal.$this->prepareDataCount;
+        }
+        if (count($res) > 1) return join($res,',');
+        return $res[0];
+
+    }
+
+    protected function getPrepareData()
+    {
+        return $this->prepareData;
+    }
+    protected function setPrepare($p = true)
+    {
+        $this->prepare = $p;
+    }
 }
 
 
@@ -503,12 +539,12 @@ class Mysql
 
     function get(Sql $sql)
     {
-        $sql->get()
+        $sql->get();
     }
 
     function update(Sql $sql)
     {
-        $sql->update()
+        $sql->update();
     }
 
     function insert()
@@ -533,4 +569,23 @@ class Mysql
     }
 }
 
-var_dump(Mysql::table('df'));
+$pdo = new PDO('mysql:dbname=blog;host=127.0.0.1','root','12');
+
+$obj = Sql::table('blog_comments')->setPrepare(true);
+$sql = $obj->select()->where(['comment_ID','=',1])->get();
+$data = $obj->getPrepareData();
+$obj3 = $pdo->prepare($sql);
+$obj3->execute($data);
+$da = $obj3->fetch(PDO::FETCH_ASSOC);
+unset($da['comment_ID']);
+$da['comment_content'] = 'ww';
+$obj2 = Sql::table('blog_comments')->setPrepare(true);
+$sql = $obj2->where($da)->get();
+$data = $obj2->getPrePareData();
+$obj4 = $pdo->prepare($sql);
+
+var_dump($obj4->execute($data));
+var_dump($obj4->fetchAll());
+var_dump($pdo->query($sql)->fetchAll());
+
+
