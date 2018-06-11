@@ -1,4 +1,6 @@
 <?php
+
+insert into 
 class Sql
 {
     protected $select = '';
