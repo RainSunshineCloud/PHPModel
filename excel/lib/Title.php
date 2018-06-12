@@ -1,6 +1,6 @@
 <?php
 
-trait rows
+trait Title
 {
     public $rows = null;
     public $rowMap = [];
