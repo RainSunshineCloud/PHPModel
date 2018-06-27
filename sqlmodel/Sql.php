@@ -1,6 +1,5 @@
 <?php
 
-insert into 
 class Sql
 {
     protected $select = '';
@@ -41,6 +40,8 @@ class Sql
         }
 
         foreach ($join_table as $k => $v) {
+				list($db,$field) = explode('.',str_replace('=','`=`',$v),2);
+	            $v = '`'.$db.'`'.'.`'.$field.'`';
             $this->join .= ' '.$join.' join '.$k.' on '.$v;
         }
 
@@ -55,9 +56,9 @@ class Sql
      * @param        $where 查询条件
      *                      方式1：['字段'，'操作'，'值'] 操作省略默认为= 如 ['id','in',[1,2,3]]=>id in (1,2,3)
      *                      方式2：['逻辑词'=>[方式1,方式1]，逻辑词省略默认为and
-     *                      方式2：['字段'=>'1'] ; 字段=1, 逻辑词默认为and 操作默认为 =
-     *                      方式3： 连环嵌套，自动加括号
-     *                      方式4： 四种可混用
+     *                      方式3：['字段'=>'1'] ; 字段=1, 逻辑词默认为and 操作默认为 =
+     *                      方式4： 连环嵌套，自动加括号
+     *                      方式5：	直接字符串
      *                      方式5： 可在值上传入子查询
      * @param string $and
      */
@@ -66,7 +67,6 @@ class Sql
         if (!$this->where) $this->where .= ' where ';
         else $this->where .= ' '.$and.' ';
         $where = $this->getWhere($where,$and);
-
         if ($where[0] == '(' ) {
             $where = str_split($where,1);
             array_pop($where);
@@ -92,25 +92,30 @@ class Sql
     {
 
         $arr = [];
-        foreach ($where as $k=>$v) {
-            if (is_array($v)) {
-                if (!is_string($k)) $k = 'and';
-                $arr[] = $this->getWhere($v,$k);
-            } else {
-                if (!isset($where[0])) {
-                   return $this->arrayTransform($where);
-                }
-                if (count($where) == 2) {
-                    return $where[0].' = '.$this->prepare($where[1]);
-                }
-                $this->getOperator($where);
-                return join($where,' ');
-            }
+        if (is_array($where)) {
 
+	        foreach ($where as $k=>$v) {
+	            if (is_array($v)) {
+	                if (!is_string($k)) $k = 'and';
+	                $arr[] = $this->getWhere($v,$k);
+	            } else {
+	                if (!isset($where[0])) {
+	                   return $this->arrayTransform($where);
+	                }
+	                if (count($where) == 2) {
+	                    return $where[0].' = '.$this->prepare($where[1]);
+	                }
+	                $this->getOperator($where);
+	                return join($where,' ');
+	            }
+
+	        }
+        } else {
+        	return $where;
         }
 
         if (count($arr) > 1) return '('.join($arr,' '.$and.' ').')';
-        return '('.join($arr,' '.$and.' ').')';
+        return reset($arr);
     }
 
     /**
@@ -130,20 +135,25 @@ class Sql
             case '<=':
             case '>':
             case '<>':
-                $where[0] = '`'.$where[0].'`';
-            if ($field !== false) {$where[0] = '`'.$db.'`'.'.'.$where[0];}
+				list($db,$field) = array_pad(explode('.',$where[0],2),2,false);
+	            if ($field !== false) $where[0] = '`'.$db.'`'.'.`'.$field.'`';
+	            else  $where[0] = '`'.$where[0].'`';
                 $where[2] = $this->prepare($where[2]);
-
                 return '';
             case 'is':
-                $where[0] = '`'.$where[0].'`';
-                if ($field !== false) {$where[0] = '`'.$db.'`'.'.'.$where[0];}
+
+            	list($db,$field) = explode('.',$where[0]);
+	            if ($field !== false) $where[0] = '`'.$db.'`'.'.`'.$field.'`';
+	            else  $where[0] = '`'.$where[0].'`';
+                if ($field !== false) {$where[0] = '`'.$db.'`'.'.`'.$where[0].'`';}
                 break;
             default :
+            	list($db,$field) = explode('.',$where[0]);
+	            if ($field !== false) $where[0] = '`'.$db.'`'.'.`'.$field.'`';
+	            else  $where[0] = '`'.$where[0].'`';
+
                 if (is_array($where[2])) $where[2] = '('.join($where[2],',').')';
                 else $where[2] = '('.$where[2].')';
-                if ($field !== false) {$where[0] = '`'.$db.'`'.'.'.$where[0];}
-
         }
     }
 
@@ -588,9 +598,16 @@ $if_leave = 1;
             'user a' => 'a.id = b.user_id'
         ];
 $select = 'b.date,b.user_id,b.day_type_id,b.shift_id,c.onduty_time,c.offduty_time,a.id,a.username,a.cname,a.code,a.if_leave,a.entry_date,a.leave_date';
-$where = [['user_id','=',$user_id],['date','>=',$start],['date','<=',$end]];
+$where['or'] = [
+	['a.id','in',[1,2,4]],
+	['id','<',1],
+	['id','<',1]
+];
+
+$where['and'] = [['id','<',3],['id','<',3]];
+
 $userwhere = [
-    ['id','>',6],
+    ['a.id','>',6],
     'or'=>[['if_leave','=',1],['if_leave'=>2,'leave_date','>=',$leaveDate]],
     ['entry_date','<',$today],
     ['if_leave','<>',0],
@@ -598,4 +615,4 @@ $userwhere = [
 ];
 $sql = Sql::join($join)->setPrepare(false)->select($select)->where($where)->get();
 
-var_dump($sql);
+echo $sql;
