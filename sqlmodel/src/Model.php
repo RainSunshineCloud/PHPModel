@@ -6,9 +6,11 @@ class Model
 	protected static $driver = null;
 	protected static $drive = 'PDO';
 	protected static $lastSql = [];
-	private $Sql = null;
 
-	protected function __construct(){}
+	private    $boot = false;
+	protected  $prefix = null;
+	protected  $table = null;
+	private    $Sql = null;
 
 	/**
 	 * 静态调用生成驱动和对象
@@ -20,7 +22,6 @@ class Model
 			$model = sprintf('Driver\%sDriver',self::$drive);
 			self::$driver = new $model();
 		}
-
 		$method_up = strtoupper($methods); 
 		if ($method_up == 'QUERY') {
 			return call_user_func_array([$this,'query'], $args);
@@ -29,10 +30,44 @@ class Model
 		} else if (in_array($method_up ,['BEGINTRANSACTION','ROLLBACK','COMMIT'])) {
 			return call_user_func_array([self::$driver,$methods], $args);
 		} 
-
-		$obj = new Model();
+		$model = get_called_class();
+		$obj = new $model();
 		$obj->Sql = call_user_func_array(['Sql',$methods], $args);
+		if ($obj->boot == false) {
+			$obj->init($method_up,$methods);
+		}
 		return $obj;
+	}
+
+	/**
+	 * 初始化
+	 * @return [type] [description]
+	 */
+	protected function init($method_up,$methods)
+	{
+		//初始化表
+		
+		if ($method_up != 'TABLE') {
+			if ($this->table) {
+				$this->Sql = call_user_func_array([$this->Sql,'table'], [$this->table]);
+			} else if (($table = get_called_class()) && strtoupper($table) != 'MODEL') {
+				
+				$table = substr($table,0,-5);
+				if ($table) {
+					$this->Sql = call_user_func_array([$this->Sql,'table'], [strtolower($table)]);
+				}
+			}
+		} 
+
+		//初始化表前缀
+		if ($method_up != 'PREFIX') {
+			if ($this->prefix) {
+				$this->Sql = call_user_func_array([$this->Sql,'prefix'], [$this->prefix]);
+			}
+		} 
+		echo 1;
+		$this->boot = true;
+
 	}
 
 	/**
@@ -40,16 +75,24 @@ class Model
 	 */
 	public function __call($methods,$args)
 	{
+		if (!self::$driver) {//驱动设置在静态属性
+			$model = sprintf('Driver\%sDriver',self::$drive);
+			self::$driver = new $model();
+		}
 		if (in_array($methods,['get'])) {
 			return $this->select($args);
 		} else if (method_exists($this, $methods)) {
 			return call_user_func_array([$this,$methods], $args);
 		} else if (method_exists(self::$driver,$methods)){ //调用DRIVER
 		    return call_user_func_array([self::$driver,$methods], $args);
+		} else if (!$this->Sql) {
+			$this->Sql = call_user_func_array(['Sql',$methods], $args);
 		} else {
 			$this->Sql = call_user_func_array([$this->Sql,$methods], $args);
 		} 
-
+		if ($this->boot == false) {
+			$this->init(strtoupper($methods),$methods);
+		}
 		return $this;
 	}
 
