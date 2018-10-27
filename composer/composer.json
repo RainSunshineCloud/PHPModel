@@ -1,0 +1,17 @@
+{
+    "name": "qing/composer",
+    "authors": [
+        {
+            "name": "RainSunshineCloud",
+            "email": "931035553@qq.com"
+        }
+    ],
+    "require": {
+    	"PHP": ">7.0"
+    },
+    "autoload":{
+    	"psr-4": {
+            "RainSunshineCloud\\Validation\\" : "vendor/validate/src/"
+    	}
+    }
+}

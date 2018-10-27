@@ -1,6 +1,6 @@
 {
-    "name": "qing/validate",
-    "description": "数据验证类",
+    "name": "qing/sqlmodel",
+    "description": "这是一个关系型数据库的model类",
     "type": "composer-plugin",
     "authors": [
         {
@@ -8,7 +8,5 @@
             "email": "931035553@qq.com"
         }
     ],
-    "require": {
-        "php" : ">7.0"
-    }
+    "require": {}
 }
