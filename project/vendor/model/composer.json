@@ -1,0 +1,12 @@
+{
+    "name": "qing/sqlmodel",
+    "description": "这是一个关系型数据库的model类",
+    "type": "composer-plugin",
+    "authors": [
+        {
+            "name": "RainSunshineCloud",
+            "email": "931035553@qq.com"
+        }
+    ],
+    "require": {}
+}

@@ -1,0 +1,14 @@
+{
+    "name": "qing/validate",
+    "description": "数据验证类",
+    "type": "composer-plugin",
+    "authors": [
+        {
+            "name": "RainSunshineCloud",
+            "email": "931035553@qq.com"
+        }
+    ],
+    "require": {
+        "php" : ">7.0"
+    }
+}
