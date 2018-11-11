@@ -70,22 +70,36 @@ class Captcha
 			$p_array = imagettfbbox(self::$size,$angle,self::$fontfile,$text);
 			$now_height = max($p_array[1],$p_array[3],$p_array[5],$p_array[7]);
 			$text_tmp[] = [$angle,$width, $now_height, $text];
-			$width += max($p_array[0],$p_array[2],$p_array[4],$p_array[6]) - min($p_array[0],$p_array[2],$p_array[4],$p_array[6]) + rand(2,5) * $rate;
+			$width += max($p_array[0],$p_array[2],$p_array[4],$p_array[6]) - min($p_array[0],$p_array[2],$p_array[4],$p_array[6]) + mt_rand(2,5) * $rate;
 			$height = array_merge($height,[$p_array[1],$p_array[3],$p_array[5],$p_array[7]]);
 			$i++ ;
 		}
 
 
 		$height = max($height) - min($height);
-		self::$im = imagecreate($width,$height );
+		self::$im = imagecreate($width,$height);
 		list($red,$green,$blue) = self::$background;
 		$int = imagecolorallocate(self::$im,$red,$green,$blue);
-		$red += 5;
-		$green += 5;
-		$blue += 5;
 		$tmp_height = $height - self::$size/10;
+
+		$blue_red = round($blue/$red,1);
+
+		if ($blue_red == 1) {
+			$blue_red = $blue_red + 0.1;
+		}
+
 		foreach ($text_tmp as $array) {
-			$color = imagecolorallocate(self::$im,mt_rand($red,255),mt_rand($green,255), mt_rand($blue,255));
+			$tmp_red = mt_rand(0,255);
+			$tmp_green = mt_rand(0,255);
+			$tmp_blue = mt_rand(1,10);
+
+			if ($blue_red > 1) {
+				$tmp_blue = intval($tmp_red / $blue_red);
+			} else {
+				$tmp_blue = intval($tmp_red * $blue_red);
+			}
+
+			$color = imagecolorallocate(self::$im,$tmp_red,$tmp_green,$tmp_blue);
 			$p_array = imagettftext(self::$im,self::$size,$array[0],$array[1],intval($tmp_height - $array[2] ),$color,self::$fontfile,$array[3]);
 		}
 		
@@ -265,3 +279,5 @@ class Captcha
 	}
 
 }
+
+Captcha::create();
