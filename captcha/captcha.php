@@ -29,9 +29,9 @@ class Captcha
 	//画布
 	private static $im;
 	//画点个数
-	protected static $pixel_num = 30;
+	protected static $pixel_num = 60;
 	//划线个数
-	protected static $line_num = 1;
+	protected static $line_num = 2;
 	//旋转范围
 	protected static $angle = [0,2,4,6,7,9,11,13,16,17,19,23,25,28,333,336,339,342,345,347,348,350,353,356,360];
 	//字符串
@@ -81,28 +81,13 @@ class Captcha
 		list($red,$green,$blue) = self::$background;
 		$int = imagecolorallocate(self::$im,$red,$green,$blue);
 		$tmp_height = $height - self::$size/10;
-
-		$blue_red = round($blue/$red,1);
-
-		if ($blue_red == 1) {
-			$blue_red = $blue_red + 0.1;
-		}
-
 		foreach ($text_tmp as $array) {
-			$tmp_red = mt_rand(0,255);
-			$tmp_green = mt_rand(0,255);
-			$tmp_blue = mt_rand(1,10);
-
-			if ($blue_red > 1) {
-				$tmp_blue = intval($tmp_red / $blue_red);
-			} else {
-				$tmp_blue = intval($tmp_red * $blue_red);
-			}
-
+			$tmp_red = mt_rand($red + 30,250);
+			$tmp_blue =  mt_rand(0,$blue - 30);
+			$tmp_green = mt_rand($tmp_blue,$tmp_red);
 			$color = imagecolorallocate(self::$im,$tmp_red,$tmp_green,$tmp_blue);
 			$p_array = imagettftext(self::$im,self::$size,$array[0],$array[1],intval($tmp_height - $array[2] ),$color,self::$fontfile,$array[3]);
 		}
-		
 
 		self::resizeImage($width,$height);
 	}
@@ -156,7 +141,7 @@ class Captcha
 			$red = imagecolorallocate(self::$im, mt_rand(0,255),mt_rand(0,255), mt_rand(0,255));
 			$style = array($red, $red, $red, $red, $red, $w, $w, $w, $w, $w);
 			imagesetstyle(self::$im, $style);
-			imageline(self::$im,mt_rand(0,$width_mid),mt_rand(0,$height_mid),mt_rand($height_mid,self::$height), mt_rand($height_mid,self::$height), IMG_COLOR_STYLED);
+			imageline(self::$im,mt_rand(0,$width_mid),mt_rand(0,$height_mid),mt_rand($width_mid,self::$width), mt_rand($height_mid,self::$height), IMG_COLOR_STYLED);
 			$i++;
 		}
 	}
@@ -280,4 +265,3 @@ class Captcha
 
 }
 
-Captcha::create();
