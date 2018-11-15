@@ -128,7 +128,7 @@ class File
 
         }
     }
-
+    
     /**
      * 设置可传送的最大值
      * @param int $size [description]
