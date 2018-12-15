@@ -32,7 +32,13 @@ class Model
 		} 
 		$model = get_called_class();
 		$obj = new $model();
-		$obj->Sql = call_user_func_array(['Sql',$methods], $args);
+
+		if (methods('Sql',$methods)) {
+			$obj->Sql = call_user_func_array(['Sql',$methods], $args);
+		} else {
+			throw new ModelException("{$methods} 不存在",1100);
+		}
+
 		if ($obj->boot == false) {
 			$obj->init($method_up,$methods);
 		}
@@ -65,7 +71,7 @@ class Model
 				$this->Sql = call_user_func_array([$this->Sql,'prefix'], [$this->prefix]);
 			}
 		} 
-		echo 1;
+
 		$this->boot = true;
 
 	}
