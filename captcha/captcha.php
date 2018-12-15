@@ -154,7 +154,7 @@ class Captcha
 	protected static function printOut(string $filepath = '')
 	{
 		if ($filepath) {
-			imagepng(self::$im,$filepath);
+			return imagepng(self::$im,$filepath);
 		}
 		header('Content-Type: image/png');
 		imagepng(self::$im);
