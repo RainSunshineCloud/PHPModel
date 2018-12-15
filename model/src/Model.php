@@ -85,11 +85,16 @@ class Model
 			return call_user_func_array([$this,$methods], $args);
 		} else if (method_exists(self::$driver,$methods)){ //调用DRIVER
 		    return call_user_func_array([self::$driver,$methods], $args);
-		} else if (!$this->Sql) {
-			$this->Sql = call_user_func_array(['Sql',$methods], $args);
+		} else if ( method_exists("Sql", $methods)) {
+			if (!$this->Sql) {
+				$this->Sql = call_user_func_array(['Sql',$methods], $args);
+			} else {
+				$this->Sql = call_user_func_array([$this->Sql,$methods], $args);
+			}
 		} else {
-			$this->Sql = call_user_func_array([$this->Sql,$methods], $args);
+			throw new ModelException("{$methods} 不存在",1100);
 		} 
+
 		if ($this->boot == false) {
 			$this->init(strtoupper($methods),$methods);
 		}
@@ -231,6 +236,9 @@ class Model
 	{
 		self::$driver = null;
 		$this->Sql = null;
-	}
-	
+	}	
+}
+
+class ModelException extends \Exception
+{
 }

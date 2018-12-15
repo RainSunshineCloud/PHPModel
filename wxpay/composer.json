@@ -1,0 +1,16 @@
+{
+    "name": "qing/wxpay",
+    "description": "微信支付相关接口",
+    "authors": [
+        {
+            "name": "RainSunshineCloud",
+            "email": "931035553@qq.com"
+        }
+    ],
+    "require": {},
+    "autoload":{
+    	"psr-4": {
+            "WxPay\\" : "vendor/wxpay/src/"
+    	}
+    }
+}
